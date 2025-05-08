@@ -38,9 +38,10 @@ pipeline {
                     sh 'pip install pytest'
                     sh 'pytest'
                 }
-                dir('frontend') {
-                    sh 'npm test'
-                }
+                // Frontend tests are not set up yet
+                // dir('frontend') {
+                //     sh 'npm test'
+                // }
             }
         }
         
