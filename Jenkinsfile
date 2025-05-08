@@ -35,6 +35,7 @@ pipeline {
         stage('Test') {
             steps {
                 dir('backend') {
+                    sh 'pip install pytest'
                     sh 'pytest'
                 }
                 dir('frontend') {
