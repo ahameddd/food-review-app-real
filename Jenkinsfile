@@ -10,7 +10,12 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout([$class: 'GitSCM', 
+                    branches: [[name: '*/main']], 
+                    userRemoteConfigs: [[
+                        url: 'https://gitlab.com/devops2993515/food-review-app-real.git'
+                    ]]
+                ])
             }
         }
         
