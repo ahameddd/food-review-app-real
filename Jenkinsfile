@@ -49,10 +49,8 @@ pipeline {
         
         stage('Build Docker Images') {
             steps {
-                script {
-                    docker.build("${DOCKER_IMAGE_FRONTEND}:${DOCKER_TAG}", './frontend')
-                    docker.build("${DOCKER_IMAGE_BACKEND}:${DOCKER_TAG}", './backend')
-                }
+                sh "docker build -t ${DOCKER_IMAGE_FRONTEND}:${DOCKER_TAG} ./frontend"
+                sh "docker build -t ${DOCKER_IMAGE_BACKEND}:${DOCKER_TAG} ./backend"
             }
         }
         
