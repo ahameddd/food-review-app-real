@@ -1,0 +1,12 @@
+flask==2.3.3
+flask-cors==4.0.0
+firebase-admin==6.2.0
+python-dotenv==1.0.0
+Werkzeug==2.3.7
+# Security-specific packages
+pyjwt[crypto]==2.8.0  # For more secure JWT handling
+flask-talisman==1.1.0  # For security headers
+flask-limiter==3.5.0  # For rate limiting with Redis support
+bleach==6.1.0  # For input sanitization
+cryptography==41.0.5  # For cryptographic functions
+SQLAlchemy==2.0.23  # For database ORM with parameterized queries 

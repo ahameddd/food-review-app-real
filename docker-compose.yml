@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - FLASK_APP=server.py
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    networks:
+      - app-network
+    volumes:
+      - ./backend:/app:ro
+    restart: unless-stopped
+
+  # Security scanning with Trivy - Frontend
+  scan-frontend:
+    image: aquasec/trivy:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./reports:/reports
+    command: >
+      image 
+      --format json 
+      --output /reports/frontend-scan.json 
+      demo-frontend
+    depends_on:
+      - frontend
+
+  # Security scanning with Trivy - Backend
+  scan-backend:
+    image: aquasec/trivy:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./reports:/reports
+    command: >
+      image 
+      --format json 
+      --output /reports/backend-scan.json 
+      demo-backend
+    depends_on:
+      - backend
+
+networks:
+  app-network:
+    driver: bridge 

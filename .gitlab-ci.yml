@@ -1,0 +1,160 @@
+stages:
+  - build
+  - test
+  - security
+  - deploy
+
+variables:
+  DOCKER_TLS_CERTDIR: "/certs"
+
+# Include GitLab security templates
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/Container-Scanning.gitlab-ci.yml
+
+# Build Frontend
+build-frontend:
+  stage: build
+  image: node:16-alpine
+  script:
+    - cd frontend
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/build/
+    expire_in: 1 week
+
+# Build Backend
+build-backend:
+  stage: build
+  image: python:3.9-slim
+  script:
+    - cd backend
+    - pip install -r requirements.txt
+    - pip install -r requirements-security.txt
+    - python -m compileall .
+  artifacts:
+    paths:
+      - backend/
+    expire_in: 1 day
+
+# Test Frontend
+test-frontend:
+  stage: test
+  image: node:16-alpine
+  script:
+    - cd frontend
+    - npm ci
+    - npm test -- --watchAll=false
+
+# Test Backend
+test-backend:
+  stage: test
+  image: python:3.9-slim
+  script:
+    - cd backend
+    - pip install -r requirements.txt
+    - pip install -r requirements-security.txt
+    - pip install pytest
+    - python security_audit.py
+    - pytest -v
+
+# Security Scan Frontend with Trivy
+trivy-frontend:
+  stage: security
+  image: aquasec/trivy:latest
+  script:
+    - cd frontend
+    - trivy fs --format json --output frontend-scan.json .
+  artifacts:
+    paths:
+      - frontend/frontend-scan.json
+    reports:
+      security: frontend/frontend-scan.json
+    expire_in: 1 week
+
+# Security Scan Backend with Trivy
+trivy-backend:
+  stage: security
+  image: aquasec/trivy:latest
+  script:
+    - cd backend
+    - trivy fs --format json --output backend-scan.json .
+  artifacts:
+    paths:
+      - backend/backend-scan.json
+    reports:
+      security: backend/backend-scan.json
+    expire_in: 1 week
+
+# Build Docker Images
+build-docker:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA backend/
+    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
+    - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA frontend/
+    - docker push $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA
+    - docker tag $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE/backend:latest
+    - docker push $CI_REGISTRY_IMAGE/backend:latest
+    - docker tag $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE/frontend:latest
+    - docker push $CI_REGISTRY_IMAGE/frontend:latest
+  only:
+    - main
+    - tags
+
+# Deploy Staging
+deploy-staging:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - echo "Deploying to staging environment..."
+    - echo "Using images $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA and $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA"
+    # Replace with actual deployment commands for your environment
+    - curl -X POST -F "token=$STAGING_DEPLOY_TOKEN" -F "ref=main" https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/trigger/pipeline
+  environment:
+    name: staging
+    url: https://staging.example.com
+  only:
+    - main
+
+# Deploy Production
+deploy-production:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - echo "Deploying to production environment..."
+    - echo "Using images $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA and $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA"
+    # Replace with actual deployment commands for your environment
+    - curl -X POST -F "token=$PRODUCTION_DEPLOY_TOKEN" -F "ref=$CI_COMMIT_TAG" https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/trigger/pipeline
+  environment:
+    name: production
+    url: https://example.com
+  only:
+    - tags
+  when: manual
+
+# Setup GitLab Pages
+pages:
+  stage: deploy
+  dependencies:
+    - build-frontend
+  script:
+    - mkdir -p public
+    - cp -r frontend/build/* public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - main 
