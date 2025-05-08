@@ -13,6 +13,7 @@ pipeline {
                 checkout([$class: 'GitSCM', 
                     branches: [[name: '*/main']], 
                     userRemoteConfigs: [[
+                        credentialsId: 'ac7ab3b8-238e-442c-a990-2b7a741dd33a',
                         url: 'https://gitlab.com/devops2993515/food-review-app-real.git'
                     ]]
                 ])
