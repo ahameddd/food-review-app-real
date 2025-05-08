@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Restaurant Reviews App
 
 This application allows users to review restaurants, browse and search existing reviews, and see trending restaurants based on user ratings.
@@ -167,3 +168,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Firebase for backend services
 - Chart.js for data visualization
 - D3.js for word cloud visualization 
+=======
+>>>>>>> 798c8ae (Initial Commit)
